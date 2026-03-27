@@ -1,0 +1,30 @@
+/* ============================================
+   Twitch Custom Badges — Content Styles
+   Dual-mode: Native Twitch + 7TV
+   ============================================ */
+
+/* --- Badge Image (Universal) --- */
+.tcb-badge-img {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin-right: 4px;
+  border-radius: 2px;
+  object-fit: contain;
+  display: inline-block;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* --- Badges inside 7TV Chat --- */
+.seventv-chat-user-badge-list .tcb-badge-img {
+  cursor: pointer;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+/* Spacing between our badge and native 7TV badges */
+.seventv-chat-user-badge-list .tcb-badge-img ~ .seventv-chat-badge,
+.seventv-chat-user-badge-list .seventv-chat-badge ~ .tcb-badge-img {
+  margin-left: 0.25em;
+}

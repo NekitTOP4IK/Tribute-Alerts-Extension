@@ -1,0 +1,17 @@
+# Build script (contains private URLs and credentials)
+build.js
+
+# Build output
+dist_*/
+*.zip
+*.crx
+
+# Chrome extension private key — NEVER commit this
+*.pem
+
+# Node
+node_modules/
+package-lock.json
+
+# Other
+CHANGELOG.md

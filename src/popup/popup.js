@@ -1,0 +1,381 @@
+/**
+ * Tribute Alerts — Popup Script
+ * Flow: Twitch cookie → is_linked? → Telegram bot deeplink → polling → ✅ linked
+ */
+
+(function () {
+  'use strict';
+
+  const BACKEND_URL = '__BACKEND_URL__';
+  const BOT_USERNAME = '__BOT_USERNAME__';
+
+
+  // =====================================================================
+  // DOM Helpers
+  // =====================================================================
+  const $ = (id) => document.getElementById(id);
+
+  function showInfoState(icon, title, desc) {
+    showState('stateNotOnTwitch');
+    const el = $('stateNotOnTwitch');
+    if (!el) return;
+    el.querySelector('.info-icon').textContent = icon;
+    el.querySelector('.info-title').textContent = title;
+    el.querySelector('.info-desc').textContent = desc;
+  }
+
+  function showState(name) {
+    const allStates = [
+      'stateLoading', 'stateNotOnTwitch', 'stateNotLoggedIn',
+      'stateUnlinked', 'statePolling', 'stateUnlinkPending',
+      'stateLinked', 'stateLinkedNoSub'
+    ];
+    allStates.forEach(s => {
+      const el = $(s);
+      if (el) el.classList.toggle('active', s === name);
+    });
+  }
+
+  // =====================================================================
+  // Twitch tab info (content script message)
+  // =====================================================================
+  function getActiveTabInfo() {
+    return new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (!tabs || tabs.length === 0) return resolve(null);
+        const tab = tabs[0];
+        if (!tab.url || !tab.url.includes('twitch.tv')) return resolve(null);
+
+        chrome.tabs.sendMessage(tab.id, { type: 'GET_LOGIN' }, (response) => {
+          if (chrome.runtime.lastError || !response) {
+            // Content script not ready (page still loading, iframe, etc.)
+            resolve(null);
+          } else {
+            resolve(response);
+          }
+        });
+      });
+    });
+  }
+
+  // =====================================================================
+  // API helpers
+  // =====================================================================
+  const STATUS_CACHE_TTL = 30_000; // ms
+
+  async function fetchStatus(channel, login, { bypassCache = false } = {}) {
+    const cacheKey = `status_${channel}_${login}`;
+
+    if (!bypassCache) {
+      try {
+        const stored = await chrome.storage.session.get(cacheKey);
+        const entry = stored[cacheKey];
+        if (entry && Date.now() - entry.ts < STATUS_CACHE_TTL) {
+          return entry.data;
+        }
+      } catch { /* storage unavailable — fall through to network */ }
+    }
+
+    const res = await fetch(`${BACKEND_URL}/api/v1/badges/${channel}/status/${login}`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    const data = await res.json();
+
+    try {
+      await chrome.storage.session.set({ [cacheKey]: { ts: Date.now(), data } });
+    } catch { /* ignore */ }
+
+    return data;
+  }
+
+  // =====================================================================
+  // Update check
+  // =====================================================================
+  const VERSION_CHECK_TTL = 60 * 60 * 1000; // 1 hour
+
+  function _isNewer(latest, current) {
+    const parse = (v) => (v || '0').split('.').map(Number);
+    const [lM, lm, lp] = parse(latest);
+    const [cM, cm, cp] = parse(current);
+    if (lM !== cM) return lM > cM;
+    if (lm !== cm) return lm > cm;
+    return lp > cp;
+  }
+
+  async function checkAndShowUpdateBanner() {
+    try {
+      const dismissed = await chrome.storage.session.get('update_banner_dismissed');
+      if (dismissed.update_banner_dismissed) return;
+
+      let info;
+      const cached = await chrome.storage.session.get('ext_version_info');
+      const entry = cached.ext_version_info;
+      if (entry && Date.now() - entry.ts < VERSION_CHECK_TTL) {
+        info = entry.data;
+      } else {
+        const res = await fetch(`${BACKEND_URL}/api/extension/info`, {
+          signal: AbortSignal.timeout(5000)
+        });
+        info = await res.json();
+        await chrome.storage.session.set({ ext_version_info: { ts: Date.now(), data: info } });
+      }
+
+      if (!info) return;
+
+      const current = chrome.runtime.getManifest().version;
+      const hasUpdate = _isNewer(info.version, current);
+      if (!hasUpdate && !info.store_url) return;
+
+      const banner   = $('updateBanner');
+      const textEl   = $('updateBannerText');
+      const linkEl   = $('updateBannerLink');
+      const closeBtn = $('updateBannerDismiss');
+      if (!banner) return;
+
+      const resolveUrl = (url) => url && !url.startsWith('http') ? BACKEND_URL + url : (url || '#');
+
+      if (textEl) textEl.textContent = `New version available: ${info.version}`;
+      if (linkEl) { linkEl.href = resolveUrl(info.store_url || info.download_url); linkEl.textContent = info.store_url ? 'Install' : 'Download'; }
+
+      banner.style.display = 'flex';
+
+      if (closeBtn) {
+        closeBtn.onclick = async () => {
+          banner.style.display = 'none';
+          await chrome.storage.session.set({ update_banner_dismissed: true });
+        };
+      }
+    } catch { /* ignore — don't block main flow */ }
+  }
+
+  // =====================================================================
+  // Polling
+  // =====================================================================
+  let pollingInterval = null;
+  let pollingLogin = null;
+  let pollingChannel = null;
+
+  function startPolling(login, channel) {
+    stopPolling();
+    pollingLogin = login;
+    pollingChannel = channel;
+    showState('statePolling');
+
+    // Poll every 2s up to 90s
+    let ticks = 0;
+    const MAX_TICKS = 45;
+
+    async function tick() {
+      ticks++;
+      if (ticks > MAX_TICKS) {
+        stopPolling();
+        showUnlinked(login, channel);
+        return;
+      }
+      try {
+        const result = await fetchStatus(channel, login, { bypassCache: true });
+        if (result.success && result.data && result.data.is_linked) {
+          stopPolling();
+          await renderLinkedState(login, channel, result.data);
+        }
+      } catch { /* ignore — keep polling */ }
+    }
+
+    tick(); // immediate first check
+    pollingInterval = setInterval(tick, 2000);
+  }
+
+  function stopPolling() {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
+  }
+
+  // =====================================================================
+  // State renderers
+  // =====================================================================
+  function showUnlinked(login, channel) {
+    showState('stateUnlinked');
+    const btn = $('linkBtn');
+    if (btn) {
+      btn.onclick = () => {
+        chrome.tabs.create({
+          url: `https://t.me/${BOT_USERNAME}?start=link_${encodeURIComponent(login)}`
+        });
+        startPolling(login, channel);
+      };
+    }
+  }
+
+  async function renderLinkedState(login, channel, data) {
+    const isOwner = channel && login && channel.toLowerCase() === login.toLowerCase();
+    const isSubscriber = data.is_subscriber || isOwner;
+    const viewerUsername = data.viewer_username || login;
+    const viewerAvatar = data.viewer_avatar;
+    const subDuration = data.sub_duration;
+    const subscriptionLink = data.subscription_link;
+
+    if (isSubscriber) {
+      showState('stateLinked');
+
+      const nameEl = $('userName');
+      const avatarEl = $('userAvatar');
+      const tgEl = $('userTg');
+      const channelEl = $('channelName');
+      const subEl = $('subStatus');
+
+      if (nameEl) nameEl.textContent = viewerUsername;
+      if (avatarEl && viewerAvatar) avatarEl.src = viewerAvatar;
+      if (tgEl) tgEl.textContent = 'Telegram привязан';
+      if (channelEl) channelEl.textContent = channel;
+      if (subEl) subEl.textContent = isOwner
+        ? '👑 Да это же ваш канал!'
+        : (subDuration ? `${subDuration} мес.` : 'Активна');
+
+      const unlinkBtn = $('unlinkBtn');
+      if (unlinkBtn) unlinkBtn.onclick = () => handleUnlink(login, channel);
+    } else {
+      showState('stateLinkedNoSub');
+
+      const nameEl2 = $('userName2');
+      const avatarEl2 = $('userAvatar2');
+      const tgEl2 = $('userTg2');
+      const subDescEl = $('subDesc');
+      const subLinkBtn = $('subLinkBtn');
+      const unlinkBtn2 = $('unlinkBtn2');
+
+      if (nameEl2) nameEl2.textContent = viewerUsername;
+      if (avatarEl2 && viewerAvatar) avatarEl2.src = viewerAvatar;
+      if (tgEl2) tgEl2.textContent = 'Telegram привязан';
+      if (subDescEl) subDescEl.textContent = `Оформите подписку на канал ${channel}, чтобы получить значок подписчика!`;
+
+      if (subscriptionLink && subLinkBtn) {
+        subLinkBtn.style.display = 'flex';
+        subLinkBtn.onclick = () => chrome.tabs.create({ url: subscriptionLink });
+      }
+
+      if (unlinkBtn2) unlinkBtn2.onclick = () => handleUnlink(login, channel);
+    }
+  }
+
+  // =====================================================================
+  // Unlink (two-step: request → Telegram confirmation)
+  // =====================================================================
+  async function handleUnlink(login, channel) {
+    showState('stateLoading');
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/extension/viewer/unlink-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ twitch_username: login }),
+        signal: AbortSignal.timeout(8000)
+      });
+      const data = await res.json();
+
+      if (data.already_unlinked) {
+        showUnlinked(login, channel);
+        return;
+      }
+
+      if (data.pending) {
+        showState('stateUnlinkPending');
+        const cancelBtn = $('cancelUnlinkBtn');
+        if (cancelBtn) {
+          cancelBtn.onclick = async () => {
+            showState('stateLoading');
+            try {
+              const result = await fetchStatus(channel, login, { bypassCache: true });
+              if (result.success && result.data) {
+                await renderLinkedState(login, channel, result.data);
+              } else {
+                showUnlinked(login, channel);
+              }
+            } catch {
+              showUnlinked(login, channel);
+            }
+          };
+        }
+        return;
+      }
+    } catch { /* network error — fall through */ }
+
+    showUnlinked(login, channel);
+  }
+
+  // =====================================================================
+  // Main render
+  // =====================================================================
+  async function renderState() {
+    showState('stateLoading');
+
+    let tabInfo;
+    try {
+      tabInfo = await getActiveTabInfo();
+    } catch {
+      tabInfo = null;
+    }
+
+    if (!tabInfo) {
+      showInfoState('🎮', 'Откройте канал на Twitch', 'Перейдите на страницу стримера, чтобы расширение заработало.');
+      return;
+    }
+
+    const { login, channel } = tabInfo;
+
+    if (!login) {
+      showState('stateNotLoggedIn');
+      return;
+    }
+
+    if (!channel) {
+      showInfoState('🎮', 'Откройте страницу канала', 'Перейдите на страницу стримера, чтобы расширение заработало (возможно, вам нужно просто нажать F5).');
+      return;
+    }
+
+    // Fetch status from backend
+    try {
+      const result = await fetchStatus(channel, login);
+
+      if (!result.success) {
+        // HTTP 400/500 — unexpected backend error
+        showInfoState('⚠️', 'Ошибка сервера', 'Сервер вернул неожиданный ответ. Попробуйте позже.');
+        return;
+      }
+
+      const data = result.data;
+
+      if (!data.channel_active) {
+        showInfoState('ℹ️', 'Канал не подключён', 'Этот стример не использует Tribute Alerts.');
+        return;
+      }
+
+      if (!data.is_linked) {
+        showUnlinked(login, channel);
+      } else {
+        await renderLinkedState(login, channel, data);
+      }
+    } catch {
+      showInfoState('⚠️', 'Ошибка соединения', 'Не удалось подключиться к серверу. Попробуйте позже.');
+    }
+  }
+
+  // Cancel polling
+  const cancelBtn = $('cancelPollingBtn');
+  if (cancelBtn) {
+    cancelBtn.onclick = () => {
+      stopPolling();
+      if (pollingLogin && pollingChannel) {
+        showUnlinked(pollingLogin, pollingChannel);
+      } else {
+        showState('stateNotOnTwitch');
+      }
+    };
+  }
+
+  // =====================================================================
+  // Init
+  // =====================================================================
+  checkAndShowUpdateBanner();
+  renderState();
+})();

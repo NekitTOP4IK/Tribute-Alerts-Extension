@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tribute Alerts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0e0e10;
+      color: #efeff1;
+      width: 320px;
+      min-height: 180px;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      min-height: 180px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 10px;
+      background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%);
+      border-bottom: 1px solid rgba(145, 71, 255, 0.2);
+    }
+
+    .header-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #efeff1;
+      letter-spacing: 0.01em;
+    }
+
+    .header-badge {
+      margin-left: auto;
+      background: rgba(145, 71, 255, 0.15);
+      border: 1px solid rgba(145, 71, 255, 0.35);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #bf94ff;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── States ── */
+    .state {
+      display: none;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    .state.active {
+      display: flex;
+    }
+
+    /* Loading */
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(145, 71, 255, 0.2);
+      border-top-color: #9147ff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      text-align: center;
+      font-size: 13px;
+      color: #adadb8;
+    }
+
+    #stateLoading {
+      align-items: center;
+      justify-content: center;
+      padding: 28px 16px;
+    }
+
+    /* Info card used for not-on-twitch / not-logged-in states */
+    .info-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .info-icon {
+      font-size: 26px;
+      margin-bottom: 6px;
+    }
+
+    .info-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .info-desc {
+      font-size: 12px;
+      color: #adadb8;
+      line-height: 1.5;
+    }
+
+    /* ── Unlinked state ── */
+    .unlink-card {
+      background: linear-gradient(135deg, rgba(145, 71, 255, 0.1) 0%, rgba(30, 30, 36, 0.8) 100%);
+      border: 1px solid rgba(145, 71, 255, 0.25);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .unlink-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .unlink-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .unlink-desc {
+      font-size: 12px;
+      color: #adadb8;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    /* ── Polling state ── */
+    .polling-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(145, 71, 255, 0.3);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .polling-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .polling-dot {
+      width: 8px;
+      height: 8px;
+      background: #9147ff;
+      border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .polling-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .polling-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+
+      40% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .polling-text {
+      font-size: 12px;
+      color: #adadb8;
+      line-height: 1.5;
+    }
+
+    .polling-cancel {
+      font-size: 11px;
+      color: #adadb8;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 6px;
+      background: none;
+      border: none;
+      color: #adadb8;
+    }
+
+    .polling-cancel:hover {
+      color: #efeff1;
+    }
+
+    /* ── Linked state ── */
+    .user-card {
+      background: linear-gradient(135deg, rgba(145, 71, 255, 0.08) 0%, rgba(30, 30, 36, 0.6) 100%);
+      border: 1px solid rgba(145, 71, 255, 0.2);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .user-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .user-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid rgba(145, 71, 255, 0.5);
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .user-name {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .user-tg {
+      font-size: 11px;
+      color: #adadb8;
+      margin-top: 2px;
+    }
+
+    .linked-badge {
+      margin-left: auto;
+      background: rgba(0, 200, 100, 0.15);
+      border: 1px solid rgba(0, 200, 100, 0.3);
+      border-radius: 20px;
+      padding: 3px 9px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #00c864;
+      white-space: nowrap;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #adadb8;
+    }
+
+    .status-val {
+      font-weight: 600;
+      color: #efeff1;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 10px 16px;
+      width: 100%;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn:hover {
+      opacity: 0.88;
+    }
+
+    .btn-primary {
+      background: #9147ff;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.07);
+      color: #adadb8;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    /* ── Update banner ── */
+    .update-banner {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      background: rgba(255, 170, 0, 0.1);
+      border-bottom: 1px solid rgba(255, 170, 0, 0.25);
+      font-size: 11px;
+      color: #ffd166;
+      line-height: 1.4;
+    }
+
+    .update-banner-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .update-banner-link {
+      color: #ffd166;
+      font-weight: 600;
+      font-size: 11px;
+      text-decoration: none;
+      white-space: nowrap;
+      padding: 2px 8px;
+      border: 1px solid rgba(255, 209, 102, 0.4);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .update-banner-link:hover {
+      background: rgba(255, 170, 0, 0.15);
+    }
+
+    .update-banner-dismiss {
+      background: none;
+      border: none;
+      color: #adadb8;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 0;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .update-banner-dismiss:hover {
+      color: #efeff1;
+    }
+
+    /* ── Not subscribed state ── */
+    .sub-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 4px;
+    }
+
+    .sub-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .sub-desc {
+      font-size: 11px;
+      color: #adadb8;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <img src="tribute-alerts.svg" class="header-icon" alt="Logo">
+      <span class="header-title">Tribute Alerts</span>
+      <span class="header-badge" id="headerBadge">Extension</span>
+    </header>
+
+    <!-- Update banner (shown when a new version is available) -->
+    <div class="update-banner" id="updateBanner">
+      <span class="update-banner-text" id="updateBannerText"></span>
+      <a class="update-banner-link" id="updateBannerLink" href="#" target="_blank">Скачать</a>
+      <button class="update-banner-dismiss" id="updateBannerDismiss" title="Закрыть">✕</button>
+    </div>
+
+    <!-- State: Loading -->
+    <div class="state active" id="stateLoading">
+      <div class="spinner"></div>
+      <p class="loading-text">Загрузка...</p>
+    </div>
+
+    <!-- State: Not on Twitch -->
+    <div class="state" id="stateNotOnTwitch">
+      <div class="info-card">
+        <div class="info-icon">🎮</div>
+        <div class="info-title">Откройте канал на Twitch</div>
+        <div class="info-desc">Перейдите на любой стрим, чтобы увидеть баджики подписчиков (возможно, вам нужно просто нажать F5).</div>
+      </div>
+    </div>
+
+    <!-- State: Not logged in to Twitch -->
+    <div class="state" id="stateNotLoggedIn">
+      <div class="info-card">
+        <div class="info-icon">🔒</div>
+        <div class="info-title">Войдите в Twitch</div>
+        <div class="info-desc">Для работы расширения необходима авторизация на Twitch (возможно, вам нужно просто войти
+          в аккаунт заново).</div>
+      </div>
+    </div>
+
+    <!-- State: Unlinked (no Telegram linked) -->
+    <div class="state" id="stateUnlinked">
+      <div class="unlink-card">
+        <div class="unlink-icon">🔗</div>
+        <div class="unlink-title">Привяжите Telegram</div>
+        <div class="unlink-desc">Для корректной работы расширения необходимо связать ваши Telegram и
+          Twitch аккаунты.</div>
+        <button class="btn btn-primary" id="linkBtn">
+          <span>✈️</span>
+          Привязать через Telegram
+        </button>
+      </div>
+    </div>
+
+    <!-- State: Polling (waiting for bot confirmation) -->
+    <div class="state" id="statePolling">
+      <div class="polling-card">
+        <div class="polling-dots">
+          <div class="polling-dot"></div>
+          <div class="polling-dot"></div>
+          <div class="polling-dot"></div>
+        </div>
+        <div class="polling-text">
+          Ожидаем подтверждения в Telegram боте...<br>
+          <small>Нажмите «✅ Да, привязать» в боте</small>
+        </div>
+        <button class="btn btn-secondary polling-cancel" id="cancelPollingBtn" style="margin-top:10px;">
+          Отмена
+        </button>
+      </div>
+    </div>
+
+    <!-- State: Linked & subscribed -->
+    <div class="state" id="stateLinked">
+      <div class="user-card">
+        <div class="user-top">
+          <img id="userAvatar" class="user-avatar"
+            src="https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png" alt="Avatar">
+          <div>
+            <div class="user-name" id="userName">—</div>
+            <div class="user-tg" id="userTg">Telegram не указан</div>
+          </div>
+          <span class="linked-badge">✓ Привязан</span>
+        </div>
+
+        <div class="status-row" style="margin-bottom:8px;">
+          <span>Канал</span>
+          <span class="status-val" id="channelName">—</span>
+        </div>
+        <div class="status-row" style="margin-bottom:12px;" id="subRow">
+          <span>Подписка</span>
+          <span class="status-val" id="subStatus">—</span>
+        </div>
+
+        <button class="btn btn-danger" id="unlinkBtn">
+          Отвязать аккаунт
+        </button>
+      </div>
+    </div>
+
+    <!-- State: Unlink pending (waiting for Telegram confirmation) -->
+    <div class="state" id="stateUnlinkPending">
+      <div class="polling-card">
+        <div class="polling-dots">
+          <div class="polling-dot"></div>
+          <div class="polling-dot"></div>
+          <div class="polling-dot"></div>
+        </div>
+        <div class="polling-text">
+          Подтвердите отвязку в Telegram боте...<br>
+          <small>Нажмите «✅ Да, отвязать» в сообщении от бота</small>
+        </div>
+        <button class="btn btn-secondary polling-cancel" id="cancelUnlinkBtn" style="margin-top:10px;">
+          Отмена
+        </button>
+      </div>
+    </div>
+
+    <!-- State: Linked but not subscribed to this channel -->
+    <div class="state" id="stateLinkedNoSub">
+      <div class="user-card">
+        <div class="user-top">
+          <img id="userAvatar2" class="user-avatar"
+            src="https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png" alt="Avatar">
+          <div>
+            <div class="user-name" id="userName2">—</div>
+            <div class="user-tg" id="userTg2">Telegram не указан</div>
+          </div>
+          <span class="linked-badge">✓ Привязан</span>
+        </div>
+        <div class="sub-card">
+          <div class="sub-title">Нет подписки на этом канале</div>
+          <div class="sub-desc" id="subDesc">Оформите подписку, чтобы значок появился в чате.</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-primary" id="subLinkBtn" style="display:none;">Оформить подписку</button>
+          <button class="btn btn-danger" id="unlinkBtn2">Отвязать аккаунт</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+
+</html>

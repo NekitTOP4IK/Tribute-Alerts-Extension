@@ -8,9 +8,9 @@
 
 ## Установка
 
-Расширение доступно в [Chrome Web Store](#) *(ссылка)*.
+- [Chrome Web Store](https://chromewebstore.google.com/detail/fkfobecfmoiamoghcpnogchppmkenigk)
 
-Для Firefox — [addons.mozilla.org](#) *(ссылка)*.
+- [addons.mozilla.org]() *(пока нет)*.
 
 ---
 
@@ -43,12 +43,6 @@ src/
     ├── popup.html         # UI попапа
     └── popup.js           # Логика попапа (привязка, статус, отвязка)
 ```
-
----
-
-## API
-
-Документация по публичному API бэкенда — в [BADGES_API.md](BADGES_API.md).
 
 ---
 

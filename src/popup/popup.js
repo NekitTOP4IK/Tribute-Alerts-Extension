@@ -123,8 +123,10 @@
       if (!info) return;
 
       const current = chrome.runtime.getManifest().version;
-      const hasUpdate = _isNewer(info.version, current);
-      if (!hasUpdate && !info.store_url) return;
+      // API returns store_version for Chrome Web Store, zip_version for manual downloads
+      const latestVersion = info.store_version || info.zip_version || info.version;
+      const hasUpdate = _isNewer(latestVersion, current);
+      if (!hasUpdate) return;
 
       const banner   = $('updateBanner');
       const textEl   = $('updateBannerText');
@@ -134,8 +136,8 @@
 
       const resolveUrl = (url) => url && !url.startsWith('http') ? BACKEND_URL + url : (url || '#');
 
-      if (textEl) textEl.textContent = `New version available: ${info.version}`;
-      if (linkEl) { linkEl.href = resolveUrl(info.store_url || info.download_url); linkEl.textContent = info.store_url ? 'Install' : 'Download'; }
+      if (textEl) textEl.textContent = `Доступна новая версия: ${latestVersion}`;
+      if (linkEl) { linkEl.href = resolveUrl(info.store_url_new || info.store_url || info.download_url); linkEl.textContent = (info.store_url_new || info.store_url) ? 'Обновить' : 'Скачать'; }
 
       banner.style.display = 'flex';
 

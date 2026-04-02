@@ -1,5 +1,5 @@
 // ============================================
-// Twitch Custom Badges — Content Script (Core)
+// TRA Twitch Ext — Content Script (Core)
 // ============================================
 
 var cachedUsers = {};          // { login: { is_subscriber, channel_badge_tier_id, service_badge_ids, name_color, name_gradient, ... } }
@@ -184,14 +184,13 @@ function initSocket(channelName) {
       const { twitch_username, channel_badge_tiers: cbt, service_badges: sb, ...userFields } = msg.data;
       if (!twitch_username) return;
 
-      // Normalize URLs: background thread on backend may produce relative /cdn/... paths
+      // Normalize URLs
       const base = CONFIG.BACKEND_URL.replace(/\/$/, '');
       function absUrl(url) {
         if (!url) return url;
         return url.startsWith('/') ? base + url : url;
       }
 
-      // Update top-level badge definitions only when provided (never clear on user_update)
       if (cbt) {
         const normalized = {};
         for (const [id, tier] of Object.entries(cbt)) {
@@ -255,8 +254,11 @@ function extractChannelName() {
   if (parts.length === 0) return null;
 
   // dashboard.twitch.tv/u/<channel>/...
+  // dashboard.twitch.tv/popout/u/<channel>/...
   if (window.location.hostname === 'dashboard.twitch.tv') {
-    return (parts[0] === 'u' && parts[1]) ? parts[1].toLowerCase() : null;
+    let idx = 0;
+    if (parts[idx] && parts[idx].toLowerCase() === 'popout') idx++;
+    return (parts[idx] === 'u' && parts[idx + 1]) ? parts[idx + 1].toLowerCase() : null;
   }
 
   const exclude = ['directory', 'messages', 'videos', 'settings', 'subscriptions', 'drops', 'wallet', 'inventory'];

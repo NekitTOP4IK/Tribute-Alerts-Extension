@@ -1,8 +1,10 @@
-# Build script (contains private URLs and credentials)
+# Build script and signing script (contain private URLs and credentials)
 build.js
+sign_firefox.bat
 
 # Build output
 dist_*/
+web-ext-artifacts/
 *.zip
 *.crx
 

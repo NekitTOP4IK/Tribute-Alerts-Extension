@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tribute Alerts Twitch Extension",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Расширение для сервиса Tribute Alerts. Позволяет чатерам с подпиской получить значок подписчика в чате! Made for Olesha with love <3",
   "browser_specific_settings": {
     "gecko": {

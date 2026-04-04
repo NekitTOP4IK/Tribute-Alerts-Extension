@@ -1,5 +1,5 @@
 /* ============================================
-   Twitch Custom Badges — Content Styles
+   TRA Twitch Ext — Content Styles
    Dual-mode: Native Twitch + 7TV
    ============================================ */
 
@@ -8,7 +8,6 @@
   width: 18px;
   height: 18px;
   vertical-align: middle;
-  margin-right: 4px;
   border-radius: 2px;
   object-fit: contain;
   display: inline-block;
@@ -16,15 +15,73 @@
   background-color: transparent !important;
 }
 
-/* --- Badges inside 7TV Chat --- */
-.seventv-chat-user-badge-list .tcb-badge-img {
-  cursor: pointer;
-  margin-right: 0;
-  margin-left: 0;
+/* Native Twitch: wrapper for our badges inserted before username element.
+   Left margin separates from Twitch native badges; right margin separates from username. */
+.tcb-badge-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: 4px;
+  margin-right: 4px;
+  vertical-align: -4px;
 }
 
-/* Spacing between our badge and native 7TV badges */
+/* 7TV: wrapper (.seventv-chat-user-badge-list) created by seventv.js.
+   Right margin separates from username; left side is handled by 7TV layout. */
+.seventv-chat-user-badge-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-right: 4px;
+}
+
+.seventv-chat-user-badge-list .tcb-badge-img {
+  cursor: pointer;
+  margin: 0;
+}
+
+/* Spacing between our badge list and native 7TV badges */
 .seventv-chat-user-badge-list .tcb-badge-img ~ .seventv-chat-badge,
 .seventv-chat-user-badge-list .seventv-chat-badge ~ .tcb-badge-img {
   margin-left: 0.25em;
+}
+
+/* =========================================================
+   Custom Tooltip — Twitch-style with Tribute Alerts accent
+   ========================================================= */
+
+#tcb-custom-tooltip {
+  position: fixed;
+  z-index: 9999999;
+  pointer-events: none;
+  display: none;
+  white-space: nowrap;
+
+  background: rgba(24, 24, 27, 0.97);
+  color: #efeff1;
+  font-family: 'Inter', 'Roobert', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  padding: 5px 9px;
+  border-radius: 4px;
+
+  /* Tribute Alerts accent — replaces Twitch's plain borderless tooltip */
+  border-top: 2px solid #143fff;
+
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Downward arrow pointing toward the badge element */
+#tcb-custom-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(24, 24, 27, 0.97);
 }

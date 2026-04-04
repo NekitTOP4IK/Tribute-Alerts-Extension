@@ -1,5 +1,5 @@
 // ============================================
-// Twitch Custom Badges — 7TV Chat Processing
+// TRA Twitch Ext — 7TV Chat Processing
 // ============================================
 
 function processSevenTVMessage(messageElement) {
@@ -24,6 +24,16 @@ function processSevenTVMessage(messageElement) {
 
   const userConfig = typeof cachedUsers !== 'undefined' ? cachedUsers[username] : null;
   if (!userConfig) return;
+
+  // Tooltip on username hover — shows preset name if active (reads cachedUsers fresh)
+  if (!usernameEl.dataset.tcbTooltip) {
+    usernameEl.dataset.tcbTooltip = '1';
+    usernameEl.addEventListener('mouseenter', (e) => {
+      const cfg = typeof cachedUsers !== 'undefined' ? cachedUsers[username] : null;
+      if (cfg && cfg.name_preset_name) showTooltip(e, `Preset: ${cfg.name_preset_name}`);
+    });
+    usernameEl.addEventListener('mouseleave', hideTooltip);
+  }
 
   const badges = typeof resolveBadgesForUser !== 'undefined' ? resolveBadgesForUser(userConfig) : [];
   if (badges.length === 0) return;

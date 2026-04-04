@@ -1,5 +1,5 @@
 // ============================================
-// Twitch Custom Badges — User Card Processing (Native + 7TV)
+// TRA Twitch Ext — User Card Processing (Native + 7TV)
 // ============================================
 
 function processUserCard(cardEl) {
@@ -42,22 +42,19 @@ function processUserCard(cardEl) {
     const sevTVBadgeContainer = cardEl.querySelector('.seventv-user-card-badges');
 
     if (sevTVBadgeContainer) {
-      sevTVBadgeContainer.querySelectorAll('.tcb-badge-img').forEach(b => b.remove());
+      sevTVBadgeContainer.querySelectorAll('.tcb-badge-list').forEach(b => b.remove());
+      const wrapper = document.createElement('span');
+      wrapper.className = 'tcb-badge-list tcb-badge-list--usercard';
       badges.forEach(badge => {
         const img = createBadgeImg(badge);
-        if (img) {
-          img.style.width = '20px';
-          img.style.height = '20px';
-          img.style.verticalAlign = 'middle';
-          sevTVBadgeContainer.appendChild(img);
-        }
+        if (img) wrapper.appendChild(img);
       });
+      if (wrapper.children.length > 0) sevTVBadgeContainer.appendChild(wrapper);
     } else if (targetNameEl) {
-      let badgeContainer = cardEl.querySelector('.tcb-usercard-badges');
+      let badgeContainer = cardEl.querySelector('.tcb-badge-list');
       if (!badgeContainer) {
         badgeContainer = document.createElement('span');
-        badgeContainer.className = 'tcb-usercard-badges';
-        badgeContainer.style.cssText = 'display: inline-flex; gap: 4px; margin-right: 6px; align-items: center; vertical-align: middle;';
+        badgeContainer.className = 'tcb-badge-list tcb-badge-list--usercard';
         targetNameEl.insertAdjacentElement('beforebegin', badgeContainer);
       }
       badgeContainer.innerHTML = '';

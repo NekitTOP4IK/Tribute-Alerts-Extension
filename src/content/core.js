@@ -12,21 +12,6 @@ var serviceBadges = {};        // { 'svc_<id>': { url, title } }
 
 const tcbTooltip = document.createElement('div');
 tcbTooltip.id = 'tcb-custom-tooltip';
-tcbTooltip.style.cssText = `
-  position: fixed;
-  background: #18181b;
-  color: #efeff1;
-  padding: 3px 6px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-family: Inter, Roboto, sans-serif;
-  pointer-events: none;
-  z-index: 999999;
-  display: none;
-  border: 1px solid #303032;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-  white-space: nowrap;
-`;
 
 function showTooltip(e, text) {
   if (!text) return;
@@ -34,12 +19,30 @@ function showTooltip(e, text) {
   tcbTooltip.textContent = text;
   tcbTooltip.style.display = 'block';
   const rect = e.target.getBoundingClientRect();
-  tcbTooltip.style.left = Math.max(0, rect.left + (rect.width / 2) - (tcbTooltip.offsetWidth / 2)) + 'px';
-  tcbTooltip.style.top = Math.max(0, rect.top - tcbTooltip.offsetHeight - 6) + 'px';
+  const tw = tcbTooltip.offsetWidth;
+  const th = tcbTooltip.offsetHeight;
+  const left = Math.max(4, Math.min(window.innerWidth - tw - 4, rect.left + rect.width / 2 - tw / 2));
+  const top  = Math.max(4, rect.top - th - 7);
+  tcbTooltip.style.left = left + 'px';
+  tcbTooltip.style.top  = top + 'px';
 }
 
 function hideTooltip() {
   tcbTooltip.style.display = 'none';
+}
+
+// =========================================================================
+// name_css compat: builds CSS string from v1 fields for old cache entries
+// =========================================================================
+
+function _buildNameCssCompat(config) {
+  if (config.name_gradient) {
+    return `background: ${config.name_gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent;`;
+  }
+  if (config.name_color) {
+    return `color: ${config.name_color};`;
+  }
+  return null;
 }
 
 // =========================================================================
@@ -73,35 +76,27 @@ function _doUpdateDynamicStyles() {
 
   for (const [username, config] of Object.entries(cachedUsers)) {
     const safeName = username.replace(/(["\\])/g, '\\$1');
-    const nativeSel = `.chat-line__message [data-a-user="${safeName}"]`;
-    const stvSel    = `[data-tcb-user="${safeName}"]`;
-    const stvNameSel = `[data-tcb-user="${safeName}"] .seventv-chat-user-username`;
+    // :not(:has(.seventv-chat-user)) — excludes 7TV messages where the native element
+    // still exists in DOM but composited under 7TV's layer; applying color there bleeds through.
+    const nativeSel  = `.chat-line__message:not(:has(.seventv-chat-user)) [data-a-user="${safeName}"]`;
+    // In 7TV: apply TRA color only when no background in inline style (= no active 7TV paint).
+    const stvNameSel = `[data-tcb-user="${safeName}"] .seventv-chat-user-username:not([style*="background"])`;
 
-    if (config.name_gradient) {
-      css += `
-        ${nativeSel} {
-          background: ${config.name_gradient} !important;
-          background-clip: text !important;
-          -webkit-background-clip: text !important;
-          -webkit-text-fill-color: transparent !important;
-          color: transparent !important;
-        }
-        ${stvNameSel}:not(:has(span[style*="background"])) {
-          background: ${config.name_gradient} !important;
-          background-clip: text !important;
-          -webkit-background-clip: text !important;
-          -webkit-text-fill-color: transparent !important;
-          color: transparent !important;
-        }
-      `;
-    } else if (config.name_color) {
-      css += `
-        ${nativeSel} { color: ${config.name_color} !important; }
-        ${stvSel}:not(:has(.seventv-chat-user-username span[style*="background"])) {
-          color: ${config.name_color} !important;
-        }
-      `;
-    }
+    // api_version >= 3: use pre-built name_css; fall back to v1 fields
+    const nameCss = config.name_css || _buildNameCssCompat(config);
+    if (!nameCss) continue;
+
+    // Inject !important on every declaration
+    const important = nameCss.split(';').filter(Boolean).map(d => d.trim() + ' !important').join('; ') + ';';
+
+    // In 7TV context strip `filter` declarations — 7TV paint renders in a child element and
+    // filter on the parent bleeds through, distorting the paint appearance.
+    const importantStv = nameCss.split(';').filter(Boolean)
+      .filter(d => !d.trim().toLowerCase().startsWith('filter'))
+      .map(d => d.trim() + ' !important').join('; ') + ';';
+
+    css += `${nativeSel} { ${important} }\n`;
+    css += `${stvNameSel} { ${importantStv} }\n`;
   }
 
   styleEl.textContent = css;
@@ -136,7 +131,7 @@ let socket = null;
 
 async function fetchBadges(channelName, retryCount = 0) {
   try {
-    const response = await fetch(`${CONFIG.BACKEND_URL}/api/v1/badges/${channelName}/all`);
+    const response = await fetch(`${CONFIG.BACKEND_URL}/api/v2/badges/${channelName}/all`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const data = await response.json();
@@ -291,32 +286,13 @@ function getTwitchLogin() {
   return null;
 }
 
-async function loadConfig(callback, retryCount = 0) {
+async function loadConfig(callback) {
   const channelName = extractChannelName();
   currentChannelName = channelName;
 
   if (channelName) {
-    const login = getTwitchLogin();
-    if (!login) {
-      if (callback) callback();
-      return;
-    }
-
-    try {
-      const authRes = await fetch(`${CONFIG.BACKEND_URL}/api/v1/badges/${channelName}/status/${login}`);
-      if (!authRes.ok) throw new Error(`Status ${authRes.status}`);
-      const authData = await authRes.json();
-
-      if (authData.success) {
-        fetchBadges(channelName);
-        initSocket(channelName);
-      }
-    } catch {
-      if (retryCount < 3) {
-        setTimeout(() => loadConfig(callback, retryCount + 1), 5000);
-        return;
-      }
-    }
+    fetchBadges(channelName);
+    initSocket(channelName);
   }
   if (callback) callback();
 }

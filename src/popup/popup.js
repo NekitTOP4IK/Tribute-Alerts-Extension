@@ -76,7 +76,7 @@
       } catch { /* storage unavailable — fall through to network */ }
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/v1/badges/${channel}/status/${login}`, {
+    const res = await fetch(`${BACKEND_URL}/api/v2/badges/${channel}/status/${login}`, {
       signal: AbortSignal.timeout(8000)
     });
     const data = await res.json();
@@ -102,35 +102,34 @@
     return lp > cp;
   }
 
+  async function fetchExtensionInfo() {
+    const cached = await chrome.storage.session.get('ext_version_info');
+    const entry = cached.ext_version_info;
+    if (entry && Date.now() - entry.ts < VERSION_CHECK_TTL) return entry.data;
+    const res = await fetch(`${BACKEND_URL}/api/extension/info`, { signal: AbortSignal.timeout(5000) });
+    const info = await res.json();
+    await chrome.storage.session.set({ ext_version_info: { ts: Date.now(), data: info } });
+    return info;
+  }
+
   async function checkAndShowUpdateBanner() {
     try {
       const dismissed = await chrome.storage.session.get('update_banner_dismissed');
-      if (dismissed.update_banner_dismissed) return;
+      if (dismissed.update_banner_dismissed) return null;
 
-      let info;
-      const cached = await chrome.storage.session.get('ext_version_info');
-      const entry = cached.ext_version_info;
-      if (entry && Date.now() - entry.ts < VERSION_CHECK_TTL) {
-        info = entry.data;
-      } else {
-        const res = await fetch(`${BACKEND_URL}/api/extension/info`, {
-          signal: AbortSignal.timeout(5000)
-        });
-        info = await res.json();
-        await chrome.storage.session.set({ ext_version_info: { ts: Date.now(), data: info } });
-      }
+      const info = await fetchExtensionInfo();
 
-      if (!info) return;
+      if (!info) return null;
 
       const current = chrome.runtime.getManifest().version;
       // API returns store_version for Chrome Web Store, zip_version for manual downloads
       const latestVersion = info.store_version || info.zip_version || info.version;
       const hasUpdate = _isNewer(latestVersion, current);
-      if (!hasUpdate) return;
+      if (!hasUpdate) return info;
 
-      const banner   = $('updateBanner');
-      const textEl   = $('updateBannerText');
-      const linkEl   = $('updateBannerLink');
+      const banner = $('updateBanner');
+      const textEl = $('updateBannerText');
+      const linkEl = $('updateBannerLink');
       const closeBtn = $('updateBannerDismiss');
       if (!banner) return;
 
@@ -147,7 +146,9 @@
           await chrome.storage.session.set({ update_banner_dismissed: true });
         };
       }
+      return info;
     } catch { /* ignore — don't block main flow */ }
+    return null;
   }
 
   // =====================================================================
@@ -216,6 +217,7 @@
     const viewerUsername = data.viewer_username || login;
     const viewerAvatar = data.viewer_avatar;
     const subDuration = data.sub_duration;
+    const subStreak = data.sub_streak;
     const subscriptionLink = data.subscription_link;
 
     if (isSubscriber) {
@@ -233,7 +235,32 @@
       if (channelEl) channelEl.textContent = channel;
       if (subEl) subEl.textContent = isOwner
         ? '👑 Да это же ваш канал!'
-        : (subDuration ? `${subDuration} мес.` : 'Активна');
+        : (subDuration ? `${subDuration} мес.${subStreak > 1 ? ` (${subStreak} подряд)` : ''}` : 'Активна');
+
+      // Color row
+      const colorRow = $('colorRow');
+      const colorPreview = $('colorNamePreview');
+      const colorLink = $('colorCustomizeLink');
+      if (colorRow && !isOwner) {
+        colorRow.style.display = 'block';
+        const nameCss = data.name_css || null;
+        const nameColor = data.name_color || null;
+        if (colorPreview) {
+          colorPreview.textContent = viewerUsername;
+          if (nameCss) {
+            colorPreview.style.cssText = nameCss;
+          } else if (nameColor) {
+            colorPreview.style.cssText = `color: ${nameColor};`;
+          } else {
+            colorPreview.style.cssText = 'color: #efeff1;';
+          }
+        }
+        if (colorLink) {
+          colorLink.href = `${BACKEND_URL}/viewer/settings`;
+        }
+      } else if (colorRow) {
+        colorRow.style.display = 'none';
+      }
 
       const unlinkBtn = $('unlinkBtn');
       if (unlinkBtn) unlinkBtn.onclick = () => handleUnlink(login, channel);
@@ -378,6 +405,40 @@
   // =====================================================================
   // Init
   // =====================================================================
-  checkAndShowUpdateBanner();
+  const versionBadge = $('headerBadge');
+  if (versionBadge) {
+    versionBadge.textContent = `v${chrome.runtime.getManifest().version}`;
+    versionBadge.href = `${BACKEND_URL}/changelog`;
+    versionBadge.addEventListener('click', () => {
+      // Пометить changelog как прочитанный — сохраняем текущий latest_changelog_id
+      fetchExtensionInfo().then(info => {
+        if (info?.latest_changelog_id) {
+          chrome.storage.local.set({ last_seen_changelog_id: info.latest_changelog_id });
+        }
+      }).catch(() => {});
+      const dot = $('changelogDot');
+      if (dot) dot.classList.remove('visible');
+    });
+  }
+
+  fetchExtensionInfo().then(info => {
+    checkAndShowUpdateBanner();
+    checkChangelogDot(info);
+  }).catch(() => {
+    checkAndShowUpdateBanner();
+  });
   renderState();
+
+  async function checkChangelogDot(info) {
+    try {
+      const latestId = info?.latest_changelog_id;
+      if (!latestId) return;
+
+      const local = await chrome.storage.local.get('last_seen_changelog_id');
+      if (local.last_seen_changelog_id === latestId) return;
+
+      const dot = $('changelogDot');
+      if (dot) dot.classList.add('visible');
+    } catch { /* non-critical */ }
+  }
 })();

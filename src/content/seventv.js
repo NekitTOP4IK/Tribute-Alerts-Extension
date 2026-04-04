@@ -21,6 +21,7 @@ function processSevenTVMessage(messageElement) {
   userBlock.dataset.tcbUser = username;
 
   userBlock.querySelectorAll('.tcb-badge-img').forEach(b => b.remove());
+  userBlock.querySelectorAll('.tcb-badge-list-stv').forEach(b => b.remove());
 
   const userConfig = typeof cachedUsers !== 'undefined' ? cachedUsers[username] : null;
   if (!userConfig) return;
@@ -38,10 +39,13 @@ function processSevenTVMessage(messageElement) {
   const badges = typeof resolveBadgesForUser !== 'undefined' ? resolveBadgesForUser(userConfig) : [];
   if (badges.length === 0) return;
 
+  // Prefer 7TV's own badge container so our badges inherit its layout/alignment.
+  // If 7TV has no badge list yet, create our own with a separate class to avoid
+  // overriding 7TV's display styles.
   let badgeList = userBlock.querySelector('.seventv-chat-user-badge-list');
   if (!badgeList) {
     badgeList = document.createElement('span');
-    badgeList.className = 'seventv-chat-user-badge-list';
+    badgeList.className = 'tcb-badge-list-stv';
     usernameEl.insertAdjacentElement('beforebegin', badgeList);
   }
 

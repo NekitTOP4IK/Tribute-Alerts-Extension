@@ -378,10 +378,19 @@
       box-shadow: 0 0 24px rgba(145, 71, 255, 0.5), inset 0 0 8px rgba(145, 71, 255, 0.4);
     }
 
+    .user-info {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
     .user-name {
       font-size: 16px;
       font-weight: 700;
       line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .user-tg {
@@ -391,10 +400,14 @@
       display: flex;
       align-items: center;
       gap: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .linked-badge {
       margin-left: auto;
+      flex-shrink: 0;
       background: rgba(0, 200, 100, 0.1);
       border: 1px solid rgba(0, 200, 100, 0.25);
       border-radius: 20px;
@@ -580,11 +593,16 @@
       align-items: baseline;
       gap: 4px;
       line-height: 1.4;
-      word-break: break-word;
+      overflow: hidden;
     }
 
     .chat-name {
       font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex-shrink: 1;
+      min-width: 0;
     }
 
     .chat-colon {
@@ -728,7 +746,7 @@
         <div class="user-top">
           <img id="userAvatar" class="user-avatar"
             src="https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png" alt="Avatar">
-          <div>
+          <div class="user-info">
             <div class="user-name" id="userName">—</div>
             <div class="user-tg" id="userTg">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -799,7 +817,7 @@
         <div class="user-top">
           <img id="userAvatar2" class="user-avatar"
             src="https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png" alt="Avatar">
-          <div>
+          <div class="user-info">
             <div class="user-name" id="userName2">—</div>
             <div class="user-tg" id="userTg2">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"

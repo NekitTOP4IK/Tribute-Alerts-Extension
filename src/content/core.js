@@ -89,14 +89,24 @@ function _doUpdateDynamicStyles() {
     // Inject !important on every declaration
     const important = nameCss.split(';').filter(Boolean).map(d => d.trim() + ' !important').join('; ') + ';';
 
-    // In 7TV context strip `filter` declarations — 7TV paint renders in a child element and
-    // filter on the parent bleeds through, distorting the paint appearance.
-    const importantStv = nameCss.split(';').filter(Boolean)
+    // In 7TV context: strip `filter` from the base rule — filter on the parent element bleeds
+    // into .seventv-paint child and distorts the paint. Apply filter separately only when
+    // no .seventv-paint child is present (= user has TRA preset but no 7TV paint active).
+    const importantNoFilter = nameCss.split(';').filter(Boolean)
       .filter(d => !d.trim().toLowerCase().startsWith('filter'))
       .map(d => d.trim() + ' !important').join('; ') + ';';
 
+    const filterDecls = nameCss.split(';').filter(Boolean)
+      .filter(d => d.trim().toLowerCase().startsWith('filter'))
+      .map(d => d.trim() + ' !important').join('; ');
+
     css += `${nativeSel} { ${important} }\n`;
-    css += `${stvNameSel} { ${importantStv} }\n`;
+    css += `${stvNameSel} { ${importantNoFilter} }\n`;
+
+    if (filterDecls) {
+      const stvNoPaint = `[data-tcb-user="${safeName}"] .seventv-chat-user-username:not([style*="background"]):not(:has(.seventv-paint))`;
+      css += `${stvNoPaint} { ${filterDecls}; }\n`;
+    }
   }
 
   styleEl.textContent = css;

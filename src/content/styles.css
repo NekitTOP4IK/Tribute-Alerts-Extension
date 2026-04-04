@@ -26,24 +26,20 @@
   vertical-align: -4px;
 }
 
-/* 7TV: wrapper (.seventv-chat-user-badge-list) created by seventv.js.
-   Right margin separates from username; left side is handled by 7TV layout. */
-.seventv-chat-user-badge-list {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
+/* 7TV: spacing for our badges regardless of which container they land in */
+.seventv-chat-user-badge-list .tcb-badge-img,
+.tcb-badge-list-stv .tcb-badge-img {
   margin-right: 4px;
 }
 
-.seventv-chat-user-badge-list .tcb-badge-img {
-  cursor: pointer;
-  margin: 0;
+/* 7TV: gap between last native 7TV badge and first of our badges */
+.seventv-chat-user-badge-list .seventv-chat-badge:not(.tcb-badge-img) + .tcb-badge-img {
+  margin-left: 4px;
 }
 
-/* Spacing between our badge list and native 7TV badges */
-.seventv-chat-user-badge-list .tcb-badge-img ~ .seventv-chat-badge,
-.seventv-chat-user-badge-list .seventv-chat-badge ~ .tcb-badge-img {
-  margin-left: 0.25em;
+/* 7TV: our fallback container — used only when 7TV has no badge list of its own. */
+.tcb-badge-list-stv {
+  margin-right: 4px;
 }
 
 /* =========================================================

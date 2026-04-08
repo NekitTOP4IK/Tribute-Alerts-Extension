@@ -27,34 +27,11 @@ const e = k => {
   return v;
 };
 
-const prodUrl = e('BACKEND_URL_PROD').replace(/\/+$/, '');
-const devUrl  = e('BACKEND_URL_DEV').replace(/\/+$/, '');
-
 const ENVS = {
-  dev: {
-    backendUrl: devUrl,
-    backendHost: new URL(devUrl).host,
-    zip: false,
-  },
-  prod: {
-    backendUrl: prodUrl,
-    backendHost: new URL(prodUrl).host,
-    zip: true,
-  },
-  firefox_dev: {
-    backendUrl: devUrl,
-    backendHost: new URL(devUrl).host,
-    updateUrl: `${devUrl}/api/extension/firefox-updates.json`,
-    manifest: 'manifest.firefox.json',
-    zip: false,
-  },
-  firefox_prod: {
-    backendUrl: prodUrl,
-    backendHost: new URL(prodUrl).host,
-    updateUrl: `${prodUrl}/api/extension/firefox-updates.json`,
-    manifest: 'manifest.firefox.json',
-    zip: true,
-  },
+  dev: () => { const u = e('BACKEND_URL_DEV').replace(/\/+$/, ''); return { backendUrl: u, backendHost: new URL(u).host, zip: false }; },
+  prod: () => { const u = e('BACKEND_URL_PROD').replace(/\/+$/, ''); return { backendUrl: u, backendHost: new URL(u).host, zip: true }; },
+  firefox_dev: () => { const u = e('BACKEND_URL_DEV').replace(/\/+$/, ''); return { backendUrl: u, backendHost: new URL(u).host, updateUrl: `${u}/api/extension/firefox-updates.json`, manifest: 'manifest.firefox.json', zip: false }; },
+  firefox_prod: () => { const u = e('BACKEND_URL_PROD').replace(/\/+$/, ''); return { backendUrl: u, backendHost: new URL(u).host, updateUrl: `${u}/api/extension/firefox-updates.json`, manifest: 'manifest.firefox.json', zip: true }; },
 };
 
 // Extension files/folders (relative to project root) included in the build
@@ -131,11 +108,11 @@ function createZip(srcDir, zipPath) {
 // ─── Build ────────────────────────────────────────────────────────────────────
 
 function build(env) {
-  const cfg = ENVS[env];
-  if (!cfg) {
+  if (!ENVS[env]) {
     console.error(`❌ Unknown environment: ${env}. Available: ${Object.keys(ENVS).join(', ')}`);
     process.exit(1);
   }
+  const cfg = ENVS[env]();
 
   const outDir = path.join(__dirname, `dist_${env}`);
 

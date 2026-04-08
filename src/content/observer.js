@@ -1,5 +1,5 @@
 // ============================================
-// Twitch Custom Badges — Global DOM Observer
+// TRA Twitch Ext — Global DOM Observer
 // ============================================
 
 const globalObserver = new MutationObserver((mutations) => {

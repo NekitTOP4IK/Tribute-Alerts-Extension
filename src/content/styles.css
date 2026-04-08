@@ -26,9 +26,9 @@
   vertical-align: -4px;
 }
 
-/* 7TV: spacing for our badges regardless of which container they land in */
-.seventv-chat-user-badge-list .tcb-badge-img,
-.tcb-badge-list-stv .tcb-badge-img {
+/* 7TV: spacing between our badges (not after the last one — avoids gap before username) */
+.seventv-chat-user-badge-list .tcb-badge-img:not(:last-child),
+.tcb-badge-list-stv .tcb-badge-img:not(:last-child) {
   margin-right: 4px;
 }
 
@@ -81,3 +81,4 @@
   border: 5px solid transparent;
   border-top-color: rgba(24, 24, 27, 0.97);
 }
+

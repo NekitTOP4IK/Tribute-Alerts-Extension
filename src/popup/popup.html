@@ -24,9 +24,8 @@
         radial-gradient(circle at 10% 20%, rgba(145, 71, 255, 0.12), transparent 250px),
         radial-gradient(circle at 90% 80%, rgba(0, 200, 100, 0.08), transparent 250px);
       color: #efeff1;
-      width: 320px;
+      min-width: 320px;
       min-height: 180px;
-      overflow-x: hidden;
     }
 
     .app {
@@ -381,31 +380,18 @@
     .user-info {
       flex: 1;
       min-width: 0;
-      overflow: hidden;
     }
 
     .user-name {
       font-size: 16px;
       font-weight: 700;
       line-height: 1.2;
+      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
-    .user-tg {
-      font-size: 12px;
-      color: #adadb8;
-      margin-top: 3px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .linked-badge {
+.linked-badge {
       margin-left: auto;
       flex-shrink: 0;
       background: rgba(0, 200, 100, 0.1);
@@ -598,11 +584,7 @@
 
     .chat-name {
       font-weight: 700;
-      overflow: hidden;
-      text-overflow: ellipsis;
       white-space: nowrap;
-      flex-shrink: 1;
-      min-width: 0;
     }
 
     .chat-colon {
@@ -748,14 +730,6 @@
             src="https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png" alt="Avatar">
           <div class="user-info">
             <div class="user-name" id="userName">—</div>
-            <div class="user-tg" id="userTg">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m22 2-7 20-4-9-9-4Z" />
-                <path d="M22 2 11 13" />
-              </svg>
-              Telegram не указан
-            </div>
           </div>
           <div class="linked-badge">
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
@@ -787,27 +761,14 @@
           </div>
         </div>
 
-        <button class="btn btn-secondary" id="unlinkBtn">
-          Отвязать аккаунт
-        </button>
-      </div>
-    </div>
-
-    <!-- State: Unlink pending (waiting for Telegram confirmation) -->
-    <div class="state" id="stateUnlinkPending">
-      <div class="polling-card">
-        <div class="polling-dots">
-          <div class="polling-dot"></div>
-          <div class="polling-dot"></div>
-          <div class="polling-dot"></div>
-        </div>
-        <div class="polling-text">
-          Подтвердите отвязку в боте...<br>
-          <small>Нажмите «Да, отвязать» в Telegram</small>
-        </div>
-        <button class="btn btn-secondary polling-cancel" id="cancelUnlinkBtn">
-          Отмена
-        </button>
+        <a class="btn btn-secondary" id="settingsLink" href="#" target="_blank">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          Мои настройки
+        </a>
       </div>
     </div>
 
@@ -819,14 +780,6 @@
             src="https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png" alt="Avatar">
           <div class="user-info">
             <div class="user-name" id="userName2">—</div>
-            <div class="user-tg" id="userTg2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m22 2-7 20-4-9-9-4Z" />
-                <path d="M22 2 11 13" />
-              </svg>
-              Telegram не указан
-            </div>
           </div>
           <div class="linked-badge">
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
@@ -844,7 +797,14 @@
 
         <div style="display:flex; flex-direction: column; gap:8px;">
           <button class="btn btn-primary" id="subLinkBtn" style="display:none;">Оформить подписку</button>
-          <button class="btn btn-secondary" id="unlinkBtn2">Отвязать аккаунт</button>
+          <a class="btn btn-secondary" id="settingsLink2" href="#" target="_blank">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Мои настройки
+          </a>
         </div>
       </div>
     </div>

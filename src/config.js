@@ -1,5 +1,4 @@
 const CONFIG = {
   BACKEND_URL: '__BACKEND_URL__',
-  BOT_USERNAME: '__BOT_USERNAME__',
 };
 

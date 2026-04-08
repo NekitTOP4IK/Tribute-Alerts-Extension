@@ -266,7 +266,7 @@ function extractChannelName() {
     return (parts[idx] === 'u' && parts[idx + 1]) ? parts[idx + 1].toLowerCase() : null;
   }
 
-  const exclude = ['directory', 'messages', 'videos', 'settings', 'subscriptions', 'drops', 'wallet', 'inventory'];
+  const exclude = ['directory', 'messages', 'videos', 'settings', 'subscriptions', 'drops', 'wallet', 'inventory', 'auth', 'authorize', 'oauth', 'login', 'signup', 'passport', 'embed', 'bits', 'turbo', 'prime', 'store', 'payments', 'checkout', 'search', 'following', 'friends', 'notifications', 'support', 'jobs', 'about', 'p', 'help', 'downloads', 'broadcast'];
   const first = parts[0].toLowerCase();
   if (first === 'moderator' || first === 'popout') {
     let idx = 1;

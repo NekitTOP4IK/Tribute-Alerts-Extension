@@ -7,7 +7,6 @@
   'use strict';
 
   const BACKEND_URL = '__BACKEND_URL__';
-  const BOT_USERNAME = '__BOT_USERNAME__';
 
 
   // =====================================================================
@@ -27,7 +26,7 @@
   function showState(name) {
     const allStates = [
       'stateLoading', 'stateNotOnTwitch', 'stateNotLoggedIn',
-      'stateUnlinked', 'statePolling', 'stateUnlinkPending',
+      'stateUnlinked', 'statePolling',
       'stateLinked', 'stateLinkedNoSub'
     ];
     allStates.forEach(s => {
@@ -203,9 +202,7 @@
     const btn = $('linkBtn');
     if (btn) {
       btn.onclick = () => {
-        chrome.tabs.create({
-          url: `https://t.me/${BOT_USERNAME}?start=link_${encodeURIComponent(login)}`
-        });
+        chrome.tabs.create({ url: `${BACKEND_URL}/viewer-connect` });
         startPolling(login, channel);
       };
     }
@@ -225,13 +222,11 @@
 
       const nameEl = $('userName');
       const avatarEl = $('userAvatar');
-      const tgEl = $('userTg');
       const channelEl = $('channelName');
       const subEl = $('subStatus');
 
       if (nameEl) nameEl.textContent = viewerUsername;
       if (avatarEl && viewerAvatar) avatarEl.src = viewerAvatar;
-      if (tgEl) tgEl.textContent = 'Telegram привязан';
       if (channelEl) channelEl.textContent = channel;
       if (subEl) subEl.textContent = isOwner
         ? '👑 Да это же ваш канал!'
@@ -262,21 +257,18 @@
         colorRow.style.display = 'none';
       }
 
-      const unlinkBtn = $('unlinkBtn');
-      if (unlinkBtn) unlinkBtn.onclick = () => handleUnlink(login, channel);
+      const settingsLink = $('settingsLink');
+      if (settingsLink) settingsLink.href = `${BACKEND_URL}/viewer/settings`;
     } else {
       showState('stateLinkedNoSub');
 
       const nameEl2 = $('userName2');
       const avatarEl2 = $('userAvatar2');
-      const tgEl2 = $('userTg2');
       const subDescEl = $('subDesc');
       const subLinkBtn = $('subLinkBtn');
-      const unlinkBtn2 = $('unlinkBtn2');
 
       if (nameEl2) nameEl2.textContent = viewerUsername;
       if (avatarEl2 && viewerAvatar) avatarEl2.src = viewerAvatar;
-      if (tgEl2) tgEl2.textContent = 'Telegram привязан';
       if (subDescEl) subDescEl.textContent = `Оформите подписку на канал ${channel}, чтобы получить значок подписчика!`;
 
       if (subscriptionLink && subLinkBtn) {
@@ -284,52 +276,9 @@
         subLinkBtn.onclick = () => chrome.tabs.create({ url: subscriptionLink });
       }
 
-      if (unlinkBtn2) unlinkBtn2.onclick = () => handleUnlink(login, channel);
+      const settingsLink2 = $('settingsLink2');
+      if (settingsLink2) settingsLink2.href = `${BACKEND_URL}/viewer/settings`;
     }
-  }
-
-  // =====================================================================
-  // Unlink (two-step: request → Telegram confirmation)
-  // =====================================================================
-  async function handleUnlink(login, channel) {
-    showState('stateLoading');
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/extension/viewer/unlink-request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ twitch_username: login }),
-        signal: AbortSignal.timeout(8000)
-      });
-      const data = await res.json();
-
-      if (data.already_unlinked) {
-        showUnlinked(login, channel);
-        return;
-      }
-
-      if (data.pending) {
-        showState('stateUnlinkPending');
-        const cancelBtn = $('cancelUnlinkBtn');
-        if (cancelBtn) {
-          cancelBtn.onclick = async () => {
-            showState('stateLoading');
-            try {
-              const result = await fetchStatus(channel, login, { bypassCache: true });
-              if (result.success && result.data) {
-                await renderLinkedState(login, channel, result.data);
-              } else {
-                showUnlinked(login, channel);
-              }
-            } catch {
-              showUnlinked(login, channel);
-            }
-          };
-        }
-        return;
-      }
-    } catch { /* network error — fall through */ }
-
-    showUnlinked(login, channel);
   }
 
   // =====================================================================

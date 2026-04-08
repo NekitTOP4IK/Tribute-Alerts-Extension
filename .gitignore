@@ -1,6 +1,9 @@
-# Build script and signing script (contain private URLs and credentials)
-build.js
+# Local env overrides (may contain private URLs)
+.env
+
+# Signing scripts (may contain AMO API credentials)
 sign_firefox.bat
+sign_firefox.sh
 
 # Build output
 dist_*/
@@ -8,12 +11,9 @@ web-ext-artifacts/
 *.zip
 *.crx
 
-# Chrome extension private key — NEVER commit this
-*.pem
-
 # Node
 node_modules/
 package-lock.json
 
 # Other
-CHANGELOG.md
+*.pem

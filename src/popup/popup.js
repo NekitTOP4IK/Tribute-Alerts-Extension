@@ -14,13 +14,15 @@
   // =====================================================================
   const $ = (id) => document.getElementById(id);
 
-  function showInfoState(icon, title, desc) {
+  function showInfoState(icon, title, desc, showStatus = false) {
     showState('stateNotOnTwitch');
     const el = $('stateNotOnTwitch');
     if (!el) return;
     el.querySelector('.info-icon').textContent = icon;
     el.querySelector('.info-title').textContent = title;
     el.querySelector('.info-desc').textContent = desc;
+    const statusLink = $('infoStatusLink');
+    if (statusLink) statusLink.classList.toggle('visible', showStatus);
   }
 
   function showState(name) {
@@ -317,7 +319,7 @@
 
       if (!result.success) {
         // HTTP 400/500 — unexpected backend error
-        showInfoState('⚠️', 'Ошибка сервера', 'Сервер вернул неожиданный ответ. Попробуйте позже.');
+        showInfoState('⚠️', 'Ошибка сервера', 'Сервер вернул неожиданный ответ. Попробуйте позже.', true);
         return;
       }
 
@@ -334,7 +336,7 @@
         await renderLinkedState(login, channel, data);
       }
     } catch {
-      showInfoState('⚠️', 'Ошибка соединения', 'Не удалось подключиться к серверу. Попробуйте позже.');
+      showInfoState('⚠️', 'Ошибка соединения', 'Не удалось подключиться к серверу. Попробуйте позже.', true);
     }
   }
 

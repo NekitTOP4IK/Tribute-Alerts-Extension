@@ -203,6 +203,27 @@
       line-height: 1.5;
     }
 
+    .status-link {
+      display: none;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #adadb8;
+      text-align: center;
+    }
+
+    .status-link a {
+      color: #9147ff;
+      text-decoration: none;
+    }
+
+    .status-link a:hover {
+      text-decoration: underline;
+    }
+
+    .status-link.visible {
+      display: block;
+    }
+
     /* ── Unlinked state ── */
     .unlink-card {
       background: linear-gradient(135deg, rgba(145, 71, 255, 0.08) 0%, rgba(30, 30, 36, 0.5) 100%);
@@ -661,6 +682,11 @@
         <div class="info-title">Откройте канал на Twitch</div>
         <div class="info-desc">Перейдите на любой стрим, чтобы увидеть баджики подписчиков (возможно, вам нужно просто
           нажать F5).</div>
+        <div class="status-link" id="infoStatusLink">
+          <a href="https://status.tributealerts.nekittop4ik.space" target="_blank" rel="noopener noreferrer">
+            Проверить статус сервиса →
+          </a>
+        </div>
       </div>
     </div>
 

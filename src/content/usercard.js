@@ -1,18 +1,12 @@
-// ============================================
-// TRA Twitch Ext — User Card Processing (Native + 7TV)
-// ============================================
-
 function processUserCard(cardEl) {
   if (cardEl.dataset.tcbDone) return;
-  
-  // Try to find username element by known classes first
+
   const specificNameEl = cardEl.querySelector('.seventv-chat-user-username, .seventv-user-card-username, .tw-title, [data-a-target="user-card-header-username"], .viewer-card-header__display-name');
 
-  // Fallback: scan generic elements for a valid username-shaped text node
   const nameEls = Array.from(cardEl.querySelectorAll('span, h4, h2, h3, div')).filter(el => {
     return el.textContent && /^[a-zA-Z0-9_]{3,25}$/.test(el.textContent.trim());
   });
-  
+
   let rawText = '';
   let targetNameEl = null;
 

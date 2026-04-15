@@ -27,11 +27,15 @@ jobs:
           node build.js prod
           node build.js firefox_prod
 
+      - name: Extract changelog entry
+        run: |
+          awk '/^## \[v/{if(p) exit; p=1; next} p' CHANGELOG.md > CHANGELOG_LATEST.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
+          body_path: CHANGELOG_LATEST.md
           files: |
             dist_prod.zip
             dist_firefox_prod.zip
-          generate_release_notes: true

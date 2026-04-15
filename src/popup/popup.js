@@ -8,10 +8,6 @@
 
   const BACKEND_URL = '__BACKEND_URL__';
 
-
-  // =====================================================================
-  // DOM Helpers
-  // =====================================================================
   const $ = (id) => document.getElementById(id);
 
   function showInfoState(icon, title, desc, showStatus = false) {
@@ -37,9 +33,6 @@
     });
   }
 
-  // =====================================================================
-  // Twitch tab info (content script message)
-  // =====================================================================
   function getActiveTabInfo() {
     return new Promise((resolve) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -49,7 +42,6 @@
 
         chrome.tabs.sendMessage(tab.id, { type: 'GET_LOGIN' }, (response) => {
           if (chrome.runtime.lastError || !response) {
-            // Content script not ready (page still loading, iframe, etc.)
             resolve(null);
           } else {
             resolve(response);
@@ -59,10 +51,7 @@
     });
   }
 
-  // =====================================================================
-  // API helpers
-  // =====================================================================
-  const STATUS_CACHE_TTL = 30_000; // ms
+  const STATUS_CACHE_TTL = 30_000;
 
   async function fetchStatus(channel, login, { bypassCache = false } = {}) {
     const cacheKey = `status_${channel}_${login}`;
@@ -74,7 +63,7 @@
         if (entry && Date.now() - entry.ts < STATUS_CACHE_TTL) {
           return entry.data;
         }
-      } catch { /* storage unavailable — fall through to network */ }
+      } catch { /* storage unavailable */ }
     }
 
     const res = await fetch(`${BACKEND_URL}/api/v2/badges/${channel}/status/${login}`, {
@@ -89,10 +78,7 @@
     return data;
   }
 
-  // =====================================================================
-  // Update check
-  // =====================================================================
-  const VERSION_CHECK_TTL = 60 * 60 * 1000; // 1 hour
+  const VERSION_CHECK_TTL = 60 * 60 * 1000;
 
   function _isNewer(latest, current) {
     const parse = (v) => (v || '0').split('.').map(Number);
@@ -119,11 +105,9 @@
       if (dismissed.update_banner_dismissed) return null;
 
       const info = await fetchExtensionInfo();
-
       if (!info) return null;
 
       const current = chrome.runtime.getManifest().version;
-      // API returns store_version for Chrome Web Store, zip_version for manual downloads
       const latestVersion = info.store_version || info.zip_version || info.version;
       const hasUpdate = _isNewer(latestVersion, current);
       if (!hasUpdate) return info;
@@ -152,9 +136,6 @@
     return null;
   }
 
-  // =====================================================================
-  // Polling
-  // =====================================================================
   let pollingInterval = null;
   let pollingLogin = null;
   let pollingChannel = null;
@@ -165,7 +146,6 @@
     pollingChannel = channel;
     showState('statePolling');
 
-    // Poll every 2s up to 90s
     let ticks = 0;
     const MAX_TICKS = 45;
 
@@ -182,10 +162,10 @@
           stopPolling();
           await renderLinkedState(login, channel, result.data);
         }
-      } catch { /* ignore — keep polling */ }
+      } catch { /* keep polling */ }
     }
 
-    tick(); // immediate first check
+    tick();
     pollingInterval = setInterval(tick, 2000);
   }
 
@@ -196,9 +176,6 @@
     }
   }
 
-  // =====================================================================
-  // State renderers
-  // =====================================================================
   function showUnlinked(login, channel) {
     showState('stateUnlinked');
     const btn = $('linkBtn');
@@ -234,7 +211,6 @@
         ? '👑 Да это же ваш канал!'
         : (subDuration ? `${subDuration} мес.${subStreak > 1 ? ` (${subStreak} подряд)` : ''}` : 'Активна');
 
-      // Color row
       const colorRow = $('colorRow');
       const colorPreview = $('colorNamePreview');
       const colorLink = $('colorCustomizeLink');
@@ -283,9 +259,6 @@
     }
   }
 
-  // =====================================================================
-  // Main render
-  // =====================================================================
   async function renderState() {
     showState('stateLoading');
 
@@ -313,12 +286,10 @@
       return;
     }
 
-    // Fetch status from backend
     try {
       const result = await fetchStatus(channel, login);
 
       if (!result.success) {
-        // HTTP 400/500 — unexpected backend error
         showInfoState('⚠️', 'Ошибка сервера', 'Сервер вернул неожиданный ответ. Попробуйте позже.', true);
         return;
       }
@@ -340,7 +311,6 @@
     }
   }
 
-  // Cancel polling
   const cancelBtn = $('cancelPollingBtn');
   if (cancelBtn) {
     cancelBtn.onclick = () => {
@@ -353,15 +323,11 @@
     };
   }
 
-  // =====================================================================
-  // Init
-  // =====================================================================
   const versionBadge = $('headerBadge');
   if (versionBadge) {
     versionBadge.textContent = `v${chrome.runtime.getManifest().version}`;
     versionBadge.href = `${BACKEND_URL}/changelog`;
     versionBadge.addEventListener('click', () => {
-      // Пометить changelog как прочитанный — сохраняем текущий latest_changelog_id
       fetchExtensionInfo().then(info => {
         if (info?.latest_changelog_id) {
           chrome.storage.local.set({ last_seen_changelog_id: info.latest_changelog_id });

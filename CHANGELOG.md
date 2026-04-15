@@ -2,6 +2,17 @@
 
 ---
 
+## [v1.2.1]
+
+### Исправлено
+- `content/twitch.js` — бейджи теперь вставляются напрямую в `.chat-line__message--badges`, а не внутрь `.chat-line__username`; устраняет попадание бейджей в зону 7TV paint при работе 7TV как FFZ-аддона
+- `content/twitch.js` — градиенты и пресеты ников теперь корректно применяются в FFZ-режиме: `data-tcb-user` ставится на `.chat-author__display-name`, а не зависит от `data-a-user` (который в FFZ живёт на родительском элементе)
+- `content/twitch.js` — TRA-градиент подавляется когда активен 7TV paint в FFZ-режиме (paint определяется по классу `seventv-painted-content` на родителе, а не по inline-стилю как в standalone 7TV)
+- `content/core.js` — исправлен `refreshUserInChat`: поиск нативных сообщений переключён на `data-tcb-user` вместо `data-a-user` — в FFZ-режиме `data-a-user` отсутствует на `.chat-author__display-name`
+- `content/core.js` — парсер URL теперь корректно извлекает канал из `twitch.tv/popout/moderator/<channel>` (ранее возвращал `"moderator"` вместо имени канала); затрагивало Firefox
+
+---
+
 ## [v1.2.0]
 
 ### Безопасность

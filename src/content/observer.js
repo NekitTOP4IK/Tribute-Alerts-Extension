@@ -1,33 +1,24 @@
-// ============================================
-// TRA Twitch Ext — Global DOM Observer
-// ============================================
-
 const globalObserver = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
       if (node.nodeType !== 1) continue;
 
-      // --- 7TV messages ---
       if (node.classList && (node.classList.contains('seventv-message') || node.classList.contains('seventv-user-message'))) {
-        if(typeof processSevenTVMessage !== 'undefined') processSevenTVMessage(node);
+        if (typeof processSevenTVMessage !== 'undefined') processSevenTVMessage(node);
       }
 
-      // --- Native Twitch messages ---
       if (node.classList && node.classList.contains('chat-line__message')) {
-        if(typeof processNativeMessage !== 'undefined') processNativeMessage(node);
-      }
-      
-      // --- 7TV User Card ---
-      if (node.classList && (node.classList.contains('seventv-user-card-float') || node.classList.contains('seventv-user-card'))) {
-        if(typeof processUserCard !== 'undefined') processUserCard(node);
-      }
-      
-      // --- Native Twitch User Card ---
-      if (node.classList && node.classList.contains('viewer-card')) {
-        if(typeof processUserCard !== 'undefined') processUserCard(node);
+        if (typeof processNativeMessage !== 'undefined') processNativeMessage(node);
       }
 
-          // Nested messages and cards
+      if (node.classList && (node.classList.contains('seventv-user-card-float') || node.classList.contains('seventv-user-card'))) {
+        if (typeof processUserCard !== 'undefined') processUserCard(node);
+      }
+
+      if (node.classList && node.classList.contains('viewer-card')) {
+        if (typeof processUserCard !== 'undefined') processUserCard(node);
+      }
+
       if (node.querySelectorAll) {
         const seventvMsgs = node.querySelectorAll('.seventv-message, .seventv-user-message');
         if (seventvMsgs.length && typeof processSevenTVMessage !== 'undefined') {
@@ -38,12 +29,12 @@ const globalObserver = new MutationObserver((mutations) => {
         if (nativeMsgs.length && typeof processNativeMessage !== 'undefined') {
           nativeMsgs.forEach(processNativeMessage);
         }
-        
+
         const seventvCards = node.querySelectorAll('.seventv-user-card-float, .seventv-user-card');
         if (seventvCards.length && typeof processUserCard !== 'undefined') {
           seventvCards.forEach(processUserCard);
         }
-        
+
         const nativeCards = node.querySelectorAll('.viewer-card, [data-a-target="viewer-card"]');
         if (nativeCards.length && typeof processUserCard !== 'undefined') {
           nativeCards.forEach(processUserCard);
@@ -53,21 +44,17 @@ const globalObserver = new MutationObserver((mutations) => {
   }
 });
 
-// =========================================================================
-// Initialization
-// =========================================================================
-
 function startGlobalObserver() {
   if (document.body) {
     globalObserver.observe(document.body, { childList: true, subtree: true });
 
-    if(typeof processSevenTVMessage !== 'undefined') {
+    if (typeof processSevenTVMessage !== 'undefined') {
       document.querySelectorAll('.seventv-message, .seventv-user-message').forEach(processSevenTVMessage);
     }
-    if(typeof processNativeMessage !== 'undefined') {
+    if (typeof processNativeMessage !== 'undefined') {
       document.querySelectorAll('.chat-line__message').forEach(processNativeMessage);
     }
-    if(typeof processUserCard !== 'undefined') {
+    if (typeof processUserCard !== 'undefined') {
       document.querySelectorAll('.seventv-user-card-float, .viewer-card').forEach(processUserCard);
     }
   } else {

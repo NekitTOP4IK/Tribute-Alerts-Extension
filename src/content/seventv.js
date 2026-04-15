@@ -1,7 +1,3 @@
-// ============================================
-// TRA Twitch Ext — 7TV Chat Processing
-// ============================================
-
 function processSevenTVMessage(messageElement) {
   if (messageElement.dataset.tcbDone) return;
 
@@ -26,7 +22,6 @@ function processSevenTVMessage(messageElement) {
   const userConfig = typeof cachedUsers !== 'undefined' ? cachedUsers[username] : null;
   if (!userConfig) return;
 
-  // Tooltip on username hover — shows preset name if active (reads cachedUsers fresh)
   if (!usernameEl.dataset.tcbTooltip) {
     usernameEl.dataset.tcbTooltip = '1';
     usernameEl.addEventListener('mouseenter', (e) => {
@@ -39,9 +34,7 @@ function processSevenTVMessage(messageElement) {
   const badges = typeof resolveBadgesForUser !== 'undefined' ? resolveBadgesForUser(userConfig) : [];
   if (badges.length === 0) return;
 
-  // Prefer 7TV's own badge container so our badges inherit its layout/alignment.
-  // If 7TV has no badge list yet, create our own with a separate class to avoid
-  // overriding 7TV's display styles.
+  // Append to 7TV's badge list to inherit its layout; create a fallback container if absent.
   let badgeList = userBlock.querySelector('.seventv-chat-user-badge-list');
   if (!badgeList) {
     badgeList = document.createElement('span');

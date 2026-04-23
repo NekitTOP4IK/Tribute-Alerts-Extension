@@ -112,14 +112,33 @@ function resolveBadgesForUser(userEntry) {
 let currentChannelName = null;
 let socket = null;
 
+let _initialFetchSucceeded = false;
+let _lastFetchTime = 0;
+const _badgeEtags = {};
+
 async function fetchBadges(channelName, retryCount = 0) {
   try {
-    const response = await fetch(`${CONFIG.BACKEND_URL}/api/v2/badges/${channelName}/all`);
+    const headers = {};
+    if (_badgeEtags[channelName]) headers['If-None-Match'] = _badgeEtags[channelName];
+
+    const response = await fetch(`${CONFIG.BACKEND_URL}/api/v2/badges/${channelName}/all`, { headers });
+
+    if (response.status === 304) {
+      _initialFetchSucceeded = true;
+      _lastFetchTime = Date.now();
+      refreshChat();
+      return;
+    }
+
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const etag = response.headers.get('ETag');
+    if (etag) _badgeEtags[channelName] = etag;
 
     const data = await response.json();
     if (!data.success) {
-      if (retryCount < 3) setTimeout(() => fetchBadges(channelName, retryCount + 1), 5000);
+      const delay = Math.min(5000 * Math.pow(2, retryCount), 60000);
+      setTimeout(() => fetchBadges(channelName, retryCount + 1), delay);
       return;
     }
 
@@ -127,11 +146,14 @@ async function fetchBadges(channelName, retryCount = 0) {
     serviceBadges     = data.service_badges      || {};
     cachedUsers       = data.users               || {};
 
+    _initialFetchSucceeded = true;
+    _lastFetchTime = Date.now();
     updateDynamicStyles();
     refreshChat();
 
   } catch (err) {
-    if (retryCount < 3) setTimeout(() => fetchBadges(channelName, retryCount + 1), 5000);
+    const delay = Math.min(5000 * Math.pow(2, retryCount), 60000);
+    setTimeout(() => fetchBadges(channelName, retryCount + 1), delay);
   }
 }
 
@@ -140,13 +162,18 @@ function initSocket(channelName) {
 
   if (typeof io === 'undefined') return;
 
-  socket = io(CONFIG.BACKEND_URL, { transports: ['websocket', 'polling'] });
+  socket = io(CONFIG.BACKEND_URL, {
+    transports: ['websocket', 'polling'],
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 15000,
+    randomizationFactor: 0.7,
+  });
 
   let _socketEverConnected = false;
 
   socket.on('connect', () => {
     socket.emit('join_channel', { channel_name: channelName });
-    if (_socketEverConnected) fetchBadges(channelName);
+    if (_socketEverConnected || !_initialFetchSucceeded) fetchBadges(channelName);
     _socketEverConnected = true;
   });
 
@@ -154,7 +181,7 @@ function initSocket(channelName) {
     if (!msg) return;
 
     if (msg.type === 'channel_refresh') {
-      fetchBadges(channelName);
+      setTimeout(() => fetchBadges(channelName), Math.random() * 5000);
       return;
     }
 
@@ -275,22 +302,37 @@ async function loadConfig(callback) {
 }
 
 let lastUrl = location.href;
-new MutationObserver(() => {
+
+function _checkUrlChange() {
   const url = location.href;
-  if (url !== lastUrl) {
-    lastUrl = url;
-    const newChannel = extractChannelName();
-    if (newChannel && newChannel !== currentChannelName) {
-      currentChannelName = newChannel;
-      cachedUsers = {};
-      channelBadgeTiers = {};
-      serviceBadges = {};
-      updateDynamicStyles();
-      fetchBadges(newChannel);
-      initSocket(newChannel);
-    }
+  if (url === lastUrl) return;
+  lastUrl = url;
+  const newChannel = extractChannelName();
+  if (newChannel && newChannel !== currentChannelName) {
+    currentChannelName = newChannel;
+    _initialFetchSucceeded = false;
+    _lastFetchTime = 0;
+    cachedUsers = {};
+    channelBadgeTiers = {};
+    serviceBadges = {};
+    updateDynamicStyles();
+    fetchBadges(newChannel);
+    initSocket(newChannel);
   }
-}).observe(document, { subtree: true, childList: true });
+}
+
+const _origPushState = history.pushState.bind(history);
+history.pushState = (...args) => { _origPushState(...args); _checkUrlChange(); };
+const _origReplaceState = history.replaceState.bind(history);
+history.replaceState = (...args) => { _origReplaceState(...args); _checkUrlChange(); };
+window.addEventListener('popstate', _checkUrlChange);
+
+const _STALE_THRESHOLD = 5 * 60 * 1000;
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && currentChannelName && Date.now() - _lastFetchTime > _STALE_THRESHOLD) {
+    fetchBadges(currentChannelName);
+  }
+});
 
 function createBadgeImg(badge) {
   if (!badge || !badge.url) return null;

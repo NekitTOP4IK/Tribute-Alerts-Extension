@@ -327,10 +327,16 @@ const _origReplaceState = history.replaceState.bind(history);
 history.replaceState = (...args) => { _origReplaceState(...args); _checkUrlChange(); };
 window.addEventListener('popstate', _checkUrlChange);
 
-const _STALE_THRESHOLD = 5 * 60 * 1000;
+let _lastVisibilityFetchTime = 0;
+const _VISIBILITY_FETCH_COOLDOWN = 30 * 1000;
+
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && currentChannelName && Date.now() - _lastFetchTime > _STALE_THRESHOLD) {
-    fetchBadges(currentChannelName);
+  if (!document.hidden && currentChannelName) {
+    const now = Date.now();
+    if (now - _lastVisibilityFetchTime >= _VISIBILITY_FETCH_COOLDOWN) {
+      _lastVisibilityFetchTime = now;
+      fetchBadges(currentChannelName);
+    }
   }
 });
 
@@ -340,6 +346,7 @@ function createBadgeImg(badge) {
   img.src = badge.url;
   img.className = 'tcb-badge-img';
   img.alt = badge.title || 'Badge';
+  img.style.cssText = 'width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;max-width:18px!important;max-height:18px!important;';
   img.addEventListener('mouseenter', (e) => showTooltip(e, badge.title));
   img.addEventListener('mouseleave', hideTooltip);
   img.addEventListener('wheel', hideTooltip);

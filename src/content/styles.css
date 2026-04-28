@@ -1,6 +1,10 @@
 .tcb-badge-img {
-  width: 18px;
-  height: 18px;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
   vertical-align: middle;
   border-radius: 2px;
   object-fit: contain;
